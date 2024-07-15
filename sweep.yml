@@ -1,0 +1,30 @@
+program: main.py
+method: grid
+project: boilerplate
+name: mnist
+metric:
+  name: val_f1
+  goal: maximize
+parameters:
+  device:
+    value: cuda:0
+  batch_size:
+    value: 128
+  epochs:
+    value: 10
+  supervision_lambda:
+    value: 1.0
+
+  lr:
+    values:
+    - -1e-3
+    - 1e-3
+    - 1e-2
+    - -1e-2
+
+  seed:
+    values:
+      - 12345
+      - 67890
+      - 88888
+      - 22222

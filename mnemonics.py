@@ -1,0 +1,218 @@
+"""
+"THE BEER-WARE LICENSE" (Revision 42):
+<https://github.com/HashakGik> wrote this file.  As long as you retain this notice you can do whatever you want
+with this stuff. If we meet some day, and you think this stuff is worth it, you can buy me a beer in return.
+"""
+
+
+# Mnemonic names for experiments. These are functional to experiment reproducibility, as they allow runs to be grouped
+# by the same hyper-parameters, with an easily recognizable name. These will be used in combination with W&B group
+# feature to automatically compute average and standard error of experiments.
+# There are multiple options available because we may need to compare experiments from different papers, in this way
+# we can immediately identify a run origin at a glance (e.g., experiments from paper A are associated with dog
+# breeds, while experiments from paper B are movies by Mario Bava).
+
+__mnemonic_names__ = {}
+# Cat breeds.
+__mnemonic_names__["cats"] = ["Abyssinian", "Aegean", "American_Bobtail", "American_Curl", "American_Ringtail",
+          "American_Shorthair", "American_Wirehair", "Aphrodite_Giant", "Arabian_Mau", "Asian", "Asian_Semi-longhair",
+          "Australian_Mist", "Balinese", "Bambino", "Bengal", "Birman", "Bombay", "Brazilian_Shorthair", "British_Longhair",
+          "British_Shorthair", "Burmese", "Burmilla", "California_Spangled", "Chantilly-Tiffany", "Chartreux", "Chausie",
+          "Colorpoint_Shorthair", "Cornish_Rex", "Cymric", "Cyprus", "Devon_Rex", "Donskoy", "Dragon_Li", "Dwelf",
+          "Egyptian_Mau", "European_Shorthair", "Exotic_Shorthair", "Foldex", "German_Rex", "Havana_Brown", "Highlander",
+          "Himalayan", "Japanese_Bobtail", "Javanese_orColorpoint_Longhair", "Kanaani", "Khao_Manee", "Kinkalow", "Korat",
+          "Korean_Bobtail", "Korn_Ja", "Kurilian_Bobtail", "Lambkin", "LaPerm", "Lykoi", "Maine_Coon", "Manx",
+          "Mekong_Bobtail", "Minskin", "Minuet", "Munchkin", "Nebelung", "Neva_Masquerade", "Norwegian_Forest_Cat",
+          "Ocicat", "Oriental_Bicolor", "Oriental_Longhair", "Oriental_Shorthair", "Persian", "Peterbald", "Pixie-bob",
+          "Ragamuffin", "Ragdoll", "Raas", "Russian_Blue", "Russian_White", "Sam_Sawet", "Savannah", "Scottish_Fold",
+          "Selkirk_Rex", "Serengeti", "Siamese", "Siberian", "Singapura", "Snowshoe", "Sokoke", "Somali", "Sphynx",
+          "Suphalak", "Thai", "Thai_Lilac", "Tonkinese", "Toybob", "Toyger", "Turkish_Angora", "Turkish_Van",
+          "Turkish_Vankedisi", "Ukrainian_Levkoy", "York_Chocolate"]
+
+
+# Cow breeds (not exhaustive).
+__mnemonic_names__["cows"] = ["Aberdeen_Angus", "Abergele", "Abidar", "Abondance", "Adaptaur", "Afrikaner", "Agerolese",
+          "Albera", "American_Angus", "American_Milking_Devon", "Amsterdam_Island", "Anatolian_Black", "Ankole",
+          "Aubrac", "Australian_Braford", "Ayrshire", "Bali", "Beef_freisian", "Beefalo", "Beefmaster", "Belgian_Blue",
+          "Belgian_Red", "Belmont_Red", "Belted_Galloway", "Bernese", "Berrenda", "Bianca_Modenese",
+          "Blonde_D_Aquitaine", "Blue_Albion", "Blue_Grey", "Brahman", "Brangus", "Bretonne_Pie_Noir",
+          "British_White", "British_Friesian", "Brown_Carpathian", "Brown_Caucasian", "Brown_Swiss", "Burlina",
+          "Cachena", "Camargue", "Canadienne", "Charolais", "Chianina", "Chinese_Black_Pied", "Corriente",
+          "Corsican", "Danish_Jersey", "Danish_Red", "Devon", "Dexter", "Droughtmaster", "English_Longhorn",
+          "Finncattle", "Fjall", "Fleckvieh", "French_Simmental", "Fribourgeoise", "Galician_Blond", "Gascon",
+          "Gelbvieh", "German_Angus", "Gir", "Gloucester", "Guzera", "Hanwoo", "Hereford", "Herens", "Highland",
+          "Hinterwald", "Holando_Argentino", "Holstein_Friesian", "Horro", "Hungarian_Grey", "Iberican",
+          "Icelandic", "Jamaica_Hope", "Japanese_Shorthorn", "Jarmelista", "Kenny", "Kurgan", "Lakenvelder",
+          "Latvian_Brown", "Lebedyn", "Levantina", "Limia", "Limousin", "Lincoln_Red", "Lithuanian_Red",
+          "Luing", "Marchigiana", "Maremmana", "Maronesa", "Menorquina", "Mewati", "Monchina", "Mongolian",
+          "Montbeliarde", "Murray_Grey", "Norwegian_Red", "Pantaneiro", "Pembroke", "Piedmontese", "Pinzgauer",
+          "Pirenaica", "Podolica", "Polish_Red", "Randall", "Red_Angus", "Red_Holstein", "Romagnola", "Sanga",
+          "Shetland", "Simmental", "Sussex", "Tarentaise", "Telemark", "Tuli", "Valdostana", "Vorderwald", "Welsh_Black"]
+
+# Dog breeds.
+__mnemonic_names__["dogs"] = ["Affenpinscher", "Afghan_Hound", "Africanis", "Aidi", "Airedale_Terrier", "Akbash", "Akita",
+          "Aksaray_Malaklisi", "Alano_Espanol", "Alapaha_Blue_Blood_Bulldog", "Alaskan_Husky", "Alaskan_Klee_Kai",
+          "Alaskan_Malamute", "Alopekis", "Alpine_Dachsbracke", "American_Bulldog", "American_Bully",
+          "American_Cocker_Spaniel", "American_English_Coonhound", "American_Eskimo_Dog", "American_Foxhound",
+          "American_Hairless_Terrier", "American_Leopard_Hound", "American_Morkshire_Terrier", "American_Pit_Bull_Terrier",
+          "American_Staffordshire_Terrier", "American_Water_Spaniel", "Anglo-Francais_de_Petite_Venerie",
+          "Appenzeller_Sennenhund", "Ariege_Pointer", "Ariegeois", "Argentine_Pila", "Armant", "Armenian_Gampr",
+          "Artois_Hound", "Australian_Cattle_Dog", "Australian_Kelpie", "Australian_Shepherd", "Australian_Silky_Terrier",
+          "Australian_Stumpy_Tail_Cattle_Dog", "Australian_Terrier", "Austrian_Black_and_Tan_Hound", "Austrian_Pinscher",
+          "Azawakh", "Bac_Ha", "Bakharwal", "Banjara_Hound", "Bankhar_Dog", "Barak_hound", "Barbado_da_Terceira", "Barbet",
+          "Basenji", "Basque_Shepherd_Dog", "Basset_Artesien_Normand", "Basset_Bleu_de_Gascogne", "Basset_Fauve_de_Bretagne",
+          "Basset_Hound", "Bavarian_Mountain_Hound", "Beagle", "Beagle-Harrier", "Bearded_Collie", "Beauceron",
+          "Bedlington_Terrier", "Belgian_Shepherd", "Bergamasco_Shepherd", "Berger_Picard", "Bernese_Mountain_Dog",
+          "Bichon_Frise", "Biewer_Terrier", "Billy", "Black_and_Tan_Coonhound", "Black_and_Tan_Terrier",
+          "Black_Norwegian_Elkhound", "Black_Russian_Terrier", "Black_Mouth_Cur", "Bloodhound", "Blue_Lacy",
+          "Blue_Picardy_Spaniel", "Bluetick_Coonhound", "Boerboel", "Bohemian_Shepherd", "Bolognese", "Border_Collie",
+          "Border_Terrier", "Borzoi", "Boston_Terrier", "Bouvier_des_Ardennes", "Bouvier_des_Flandres", "Boxer",
+          "Boykin_Spaniel", "Bracco_Italiano", "Braque_d'Auvergne", "Braque_du_Bourbonnais", "Braque_Francais",
+          "Braque_Saint-Germain", "Brazilian_Terrier", "Briard", "Briquet_de_Provence", "Briquet_Griffon_Vendeen",
+          "Brittany", "Broholmer", "Bruno_Jura_Hound", "Bucovina_Shepherd_Dog", "Bulgarian_Hound", "Bulgarian_Scenthound",
+          "Bull_Arab", "Bull_Terrier", "Bulldog", "Bullmastiff", "Bully_Kutta", "Burgos_Pointer", "Ca_Me_Mallorqui",
+          "Ca_de_Bou", "Ca_Rater_Mallorqui", "Cairn_Terrier", "Calupoh", "Campeiro_Bulldog", "Can_de_Chira",
+          "Can_de_Palleiro", "Canaan_Dog", "Canadian_Eskimo_Dog", "Cane_Corso", "Cane_di_Oropa", "Cane_Paratore",
+          "Cantabrian_Water_Dog", "Cao_de_Gado_Transmontano", "Cardigan_Welsh_Corgi", "Carea_Leones", "Carolina_Dog",
+          "Carpathian_Shepherd_Dog", "Castro_Laboreiro_Dog", "Catahoula_Leopard_Dog", "Catalan_Sheepdog",
+          "Caucasian_Shepherd_Dog", "Cavalier_King_Charles_Spaniel", "Central_Asian_Shepherd_Dog", "Cesky_fousek",
+          "Cesky_strakaty_pes", "Cesky_Terrier", "Chesapeake_Bay_Retriever", "Chien_Francais_Blanc_et_Noir",
+          "Chien_Francais_Blanc_et_Orange", "Chien_Francais_Tricolore", "Chihuahua", "Chilean_Terrier",
+          "Chinese_Crested_Dog", "Chinook", "Chippiparai", "Chongqing", "Chortai", "Chow_Chow", "Chukotka_sled_dog",
+          "Cimarron_Uruguayo", "Cirneco_dell'Etna", "Clumber_Spaniel", "Colombian_Fino_Hound", "Continental_bulldog",
+          "Corsican_Dog", "Coton_de_Tulear", "Cretan_Hound", "Croatian_Sheepdog", "Curly-coated_Retriever",
+          "Czechoslovakian_Wolfdog", "Dachshund", "Dalmatian", "Dandie_Dinmont_Terrier", "Danish_Spitz",
+          "Danish-Swedish_Farmdog", "Denmark_Feist", "Dikkulak", "Dingo_", "Dobermann", "Dogo_Argentino", "Dogo_Sardesco",
+          "Dogue_Brasileiro", "Dogue_de_Bordeaux", "Donggyeongi", "Drentse_Patrijshond", "Drever", "Dunker", "Dutch_Shepherd",
+          "Dutch_Smoushond", "East_Siberian_Laika", "East_European_Shepherd", "Ecuadorian_Hairless_Dog",
+          "English_Cocker_Spaniel", "English_Foxhound", "English_Mastiff", "English_Setter", "English_Shepherd",
+          "English_Springer_Spaniel", "English_Toy_Terrier_(Black_&_Tan)", "Entlebucher_Mountain_Dog", "Erbi_Txakur",
+          "Estonian_Hound", "Estrela_Mountain_Dog", "Eurasier", "Faroese_Sheepdog", "Field_Spaniel", "Fila_Brasileiro",
+          "Finnish_Hound", "Finnish_Lapphund", "Finnish_Spitz", "Flat-coated_Retriever", "Florida_Brown_Dog",
+          "French_Bulldog", "French_Spaniel", "Galgo_Espanol", "Gascon_Saintongeois", "Gaucho_sheepdog",
+          "Georgian_Shepherd", "German_Hound", "German_Longhaired_Pointer", "German_Pinscher", "German_Roughhaired_Pointer",
+          "German_Shepherd", "German_Shorthaired_Pointer", "German_Spaniel", "German_Spitz", "German_Wirehaired_Pointer",
+          "Giant_Schnauzer", "Glen_of_Imaal_Terrier", "Golden_Retriever", "Gonczy_Polski", "Gordon_Setter",
+          "Grand_Anglo-Francais_Blanc_et_Noir", "Grand_Anglo-Francais_Blanc_et_Orange", "Grand_Anglo-Francais_Tricolore",
+          "Grand_Basset_Griffon_Vendeen", "Grand_Bleu_de_Gascogne", "Grand_Griffon_Vendeen", "Great_Dane",
+          "Greater_Swiss_Mountain_Dog", "Greek_Harehound", "Greek_Shepherd", "Greenland_Dog", "Greyhound",
+          "Griffon_Bleu_de_Gascogne", "Griffon_Bruxellois", "Griffon_Fauve_de_Bretagne", "Griffon_Nivernais", "Gull_Dong",
+          "Gull_Terrier", "Hallefors_Elkhound", "Halden_Hound", "Hamiltonstovare", "Hanover_Hound", "Harrier", "Havanese",
+          "Himalayan_Sheepdog", "Hmong_bobtail_dog", "Hokkaido", "Hovawart", "Huntaway", "Hygen_Hound", "Ibizan_Hound",
+          "Icelandic_Sheepdog", "Indian_pariah_dog", "Indian_Spitz", "Irish_Red_and_White_Setter", "Irish_Setter",
+          "Irish_Terrier", "Irish_Water_Spaniel", "Irish_Wolfhound", "Istrian_Coarse-haired_Hound",
+          "Istrian_Shorthaired_Hound", "Italian_Greyhound", "Jack_Russell_Terrier", "Jagdterrier", "Jamthund",
+          "Japanese_Chin", "Japanese_Spitz", "Japanese_Terrier", "Jeju", "Jindo", "Jonangi", "Kai_Ken", "Kaikadi",
+          "Kamchatka_Sled_Dog", "Kangal_Shepherd_Dog", "Kanni", "Karakachan", "Karelian_Bear_Dog", "Karelo-Finnish_Laika",
+          "Kars", "Karst_Shepherd", "Keeshond", "Kerry_Beagle", "Kerry_Blue_Terrier", "Khala", "King_Charles_Spaniel",
+          "King_Shepherd", "Kintamani", "Kishu", "Kokoni", "Kombai", "Komondor", "Kooikerhondje", "Koolie",
+          "Kromfohrlander", "Kuchi", "Kunming", "Kurdish_Mastiff", "Kuvasz", "Labrador_Retriever", "Lagotto_Romagnolo",
+          "Lai", "Lakeland_Terrier", "Lancashire_Heeler", "Landseer", "Lapponian_Herder", "Large_Munsterlander",
+          "Leonberger", "Levriero_Sardo", "Lhasa_Apso", "Liangshan_Dog", "Lithuanian_Hound", "Lobito_Herreno", "Lowchen",
+          "Lucas_Terrier", "Lupo_Italiano", "Mackenzie_River_Husky", "Magyar_Agar", "Mahratta_Hound", "Majorca_Shepherd_Dog",
+          "Maltese", "Manchester_Terrier", "Maneto", "Markiesje", "Maremmano-Abruzzese_Sheepdog", "McNab",
+          "Miniature_American_Shepherd", "Miniature_Bull_Terrier", "Miniature_Fox_Terrier", "Miniature_Pinscher",
+          "Miniature_Schnauzer", "Molossus_of_Epirus", "Mongrel", "Montenegrin_Mountain_Hound", "Moscow_Watchdog",
+          "Mountain_Cur", "Mountain_Feist", "Mudhol_Hound", "Mudi", "Neapolitan_Mastiff", "Nenets_Herding_Laika",
+          "New_Guinea_singing_dog", "New_Zealand_Heading_Dog", "Newfoundland", "Norfolk_Terrier", "Norrbottenspets",
+          "Northern_Inuit_Dog", "Norwegian_Buhund", "Norwegian_Elkhound", "Norwegian_Lundehund", "Norwich_Terrier",
+          "Nova_Scotia_Duck_Tolling_Retriever", "Nureongi", "Old_Danish_Pointer", "Old_English_Sheepdog",
+          "Olde_English_Bulldogge", "Otterhound", "Pachon_Navarro", "Pampas_Deerhound", "Papillon",
+          "Parson_Russell_Terrier", "Pastor_Garafiano", "Pastore_della_Lessinia_e_del_Lagorai", "Patagonian_Sheepdog",
+          "Patterdale_Terrier", "Pekingese", "Pembroke_Welsh_Corgi", "Perdigueiro_Galego", "Perro_Majorero",
+          "Peruvian_Hairless_Dog", "Petit_Basset_Griffon_Vendeen", "Petit_Bleu_de_Gascogne", "Phalene", "Pharaoh_Hound",
+          "Phu_Quoc_Ridgeback", "Picardy_Spaniel", "Plummer_Terrier", "Plott_Hound", "Podenco_Andaluz", "Podenco_Canario",
+          "Podenco_Valenciano", "Pointer", "Poitevin", "Polish_Greyhound", "Polish_Hound", "Polish_Lowland_Sheepdog",
+          "Pomeranian", "Pont-Audemer_Spaniel", "Poodle", "Porcelaine", "Portuguese_Podengo", "Portuguese_Pointer",
+          "Portuguese_Sheepdog", "Portuguese_Water_Dog", "Posavac_Hound", "Prazsky_Krysarik", "Presa_Canario",
+          "Pudelpointer", "Pug", "Puli", "Pumi", "Pungsan", "Pyrenean_Mastiff", "Pyrenean_Mountain_Dog",
+          "Pyrenean_Sheepdog", "Rafeiro_do_Alentejo", "Rajapalayam", "Rampur_Greyhound", "Rastreador_Brasileiro",
+          "Rat_Terrier", "Ratonero_Bodeguero_Andaluz", "Ratonero_Murciano", "Redbone_Coonhound", "Rhodesian_Ridgeback",
+          "Rize_Koyun", "Romanian_Mioritic_Shepherd_Dog", "Romanian_Raven_Shepherd_Dog", "Rottweiler", "Rough_Collie",
+          "Russian_Spaniel", "Russkiy_Toy", "Russo-European_Laika", "Ryukyu", "Saarloos_wolfdog", "Sabueso_Espanol",
+          "Saint_Miguel_Cattle_Dog", "Saint-Usuge_Spaniel", "Sakhalin_Husky", "Saluki", "Samoyed", "Sapsali", "Sarabi",
+          "Sardinian_Shepherd_Dog", "Sarplaninac", "Schapendoes", "Schillerstovare", "Schipperke", "Schweizer_Laufhund",
+          "Schweizerischer_Niederlaufhund", "Scottish_Deerhound", "Scottish_Terrier", "Sealyham_Terrier",
+          "Segugio_dell'Appennino", "Segugio_Italiano", "Segugio_Maremmano", "Serbian_Hound", "Serbian_Tricolour_Hound",
+          "Serrano_Bulldog", "Shar_Pei", "Shetland_Sheepdog", "Shiba_Inu", "Shih_Tzu", "Shikoku", "Shiloh_Shepherd",
+          "Siberian_Husky", "Silken_Windhound", "Sinhala_Hound", "Skye_Terrier", "Sloughi", "Slovak_Rough-haired_Pointer",
+          "Slovak_Cuvac", "Slovensky_kopov", "Smaland_Hound", "Small_Munsterlander", "Smithfield", "Smooth_Collie",
+          "Smooth_Fox_Terrier", "Soft-coated_Wheaten_Terrier", "South_Russian_Ovcharka", "Spanish_Mastiff",
+          "Spanish_Water_Dog", "Spino_degli_Iblei", "Spinone_Italiano", "Sporting_Lucas_Terrier", "St._Bernard",
+          "St._Hubert_Jura_Hound", "Stabyhoun", "Staffordshire_Bull_Terrier", "Standard_Schnauzer", "Stephens_Stock",
+          "Styrian_Coarse-haired_Hound", "Sussex_Spaniel", "Swedish_Lapphund", "Swedish_Vallhund", "Taigan", "Taiwan_Dog",
+          "Tamaskan_Dog", "Tang_Dog", "Tarsus_catalburun", "Tatra_Shepherd_Dog", "Tazy", "Teddy_Roosevelt_Terrier",
+          "Telomian", "Tenterfield_Terrier", "Thai_Bangkaew_Dog", "Thai_Ridgeback", "Tibetan_Kyi_Apso", "Tibetan_Mastiff",
+          "Tibetan_spaniel", "Tibetan_Terrier", "Tonya_Finosu", "Tornjak", "Tosa", "Toy_Fox_Terrier",
+          "Toy_Manchester_Terrier", "Transylvanian_Hound", "Treeing_Cur", "Treeing_Feist", "Treeing_Tennessee_Brindle",
+          "Treeing_Walker_Coonhound", "Trigg_Hound", "Tyrolean_Hound", "Valencian_Terrier", "Vikhan",
+          "Villano_de_Las_Encartaciones", "Villanuco_de_Las_Encartaciones", "Vizsla", "Volkosob", "Volpino_Italiano",
+          "Weimaraner", "Welsh_Hound", "Welsh_Sheepdog", "Welsh_Springer_Spaniel", "Welsh_Terrier", "West_Country_Harrier",
+          "West_Highland_White_Terrier", "West_Siberian_Laika", "Westphalian_Dachsbracke", "Wetterhoun", "Whippet",
+          "White_Shepherd", "White_Swiss_Shepherd_Dog", "Wire_Fox_Terrier", "Wirehaired_Pointing_Griffon",
+          "Wirehaired_Vizsla", "Xiasi_Dog", "Xoloitzcuintle", "Yakutian_Laika", "Yorkshire_Terrier", "Zerdava"]
+
+# Cities of Ohio. Inherited from <https://github.com/mela64>
+__mnemonic_names__["ohio"] = ["Akron", "Alliance", "Ashtabula", "Athens", "Barberton", "Bedford", "Bellefontaine", "Canton",
+              "Chillicothe", "Cincinnati", "Cleveland", "Columbus", "Conneaut", "Dayton", "Defiance", "Delaware",
+              "Elyria", "Euclid", "Findlay", "Gallipolis", "Greenville", "Hamilton", "Kent", "Kettering",
+              "Lakewood", "Lancaster", "Lima", "Lorain", "Mansfield", "Marietta", "Marion", "Massillon", "Mentor",
+              "Middletown", "Milan", "Newark", "Niles", "Norwalk", "Oberlin", "Painesville", "Parma", "Piqua",
+              "Portsmouth", "Salem", "Sandusky", "Springfield", "Steubenville", "Tiffin", "Toledo", "Urbana",
+              "Warren", "Wooster", "Worthington", "Xenia", "Youngstown", "Zanesville"]
+
+# The Nations of the World.
+__mnemonic_names__["nations"] = ["United_States", "Canada", "Mexico", "Panama", "Haiti", "Jamaica", "Peru", "Republic_Dominican",
+                   "Cuba", "Carribean", "Greenland", "El_Salvador", "Puerto_Rico", "Colombia", "Venezuela", "Honduras",
+                   "Guyana", "Guatemala", "Bolivia", "Argentina", "Ecuador", "Chile", "Brazil", "Costa_Rica", "Belize",
+                   "Nicaragua", "Bermuda", "Bahamas", "Tobago", "San_Juan", "Paraguay", "Uruguay", "Surinam",
+                   "French_Guiana", "Barbados", "Guam", "Norway", "Sweden", "Iceland", "Finland", "Germany",
+                   "Switzerland", "Austria", "Czechoslovakia", "Italy", "Turkey", "Greece", "Poland", "Romania",
+                   "Albania", "Ireland", "Russia", "Oman", "Bulgaria", "Saudi_Arabia", "Hungary",
+                   "Cyprus", "Iraq", "Iran", "Syria", "Lebanon", "Israel", "Jordan", "Yemens", "Kuwait", "Bahrain",
+                   "Netherlands", "Luxеmbourg", "Belgium", "Portugal", "France", "England", "Denmark", "Spain",
+                   "India", "Pakistan", "Burma", "Afghanistan", "Thailand", "Nеpal", "Bhutan", "Kampuchea", "Malaysia",
+                   "Bangladesh", "China", "Korea", "Japan", "Mongolia", "Laos", "Tibet", "Indonesia",
+                   "Philippine_Islands", "Taiwan", "Sri_Lanka", "New_Guinea", "Sumatra", "New_Zealand", "Borneo",
+                   "Vietnam", "Tunisia", "Morocco", "Uganda", "Angola", "Zimbabwe", "Djibouti", "Botswana",
+                   "Mozambique", "Zambia", "Swaziland", "Gambia", "Guinea", "Algeria", "Ghana", "Burundi", "Lesotho",
+                   "Malawi", "Togo", "Niger", "Nigeria", "Chad", "Liberia", "Egypt", "Benin", "Gabon", "Tanzania",
+                   "Somalia", "Kenya", "Mali", "Sierra_Leone", "Algiers", "Dahomey", "Namibia", "Senegal", "Libya",
+                   "Cameroon", "Congo", "Zaire", "Ethiopia", "Guinea-Bissau", "Madagascar", "Rwanda", "Mahore",
+                   "Cayman", "Hong_Kong", "Abu_Dhabi", "Qatar", "Yugoslavia", "Crete", "Mauritania", "Monaco",
+                   "Liechtenstein", "Malta", "Palestine", "Fiji", "Australia", "Sudan"]
+
+# German expressionist cinema.
+__mnemonic_names__["german_expressionism"] = ["Algol_Tragedy_of_Power", "Asphalt", "The_Cabinet_of_Dr_Caligari",
+            "The_Cat_and_the_Canary", "Destiny", "Dr_Mabuse_the_Gambler", "Faust", "From_Morning_to_Midnight",
+            "Genuine_the_Tragedy_of_a_Vampire", "The_Golem", "The_Hands_of_Orlac", "The_Last_Laugh", "M",
+            "The_Man_Who_Laughs", "Metropolis", "Nerven", "New_Years_Eve", "Die_Nibelungen_Siegfried",
+            "Die_Nibelungen_Kriemhilds_Revenge", "Nosferatu", "Der_verfurhte_Heilige", "Phantom", "Crime_and_Punishment",
+            "Warning_Shadows", "Shattered", "The_Student_of_Prague", "Tartuffe", "The_Testament_of_Dr_Mabuse",
+            "The_Treasure", "Vampyr", "Waxworks"]
+
+# Mario Bava's filmography (only movies he directed).
+__mnemonic_names__["bava"] = ["L_Orecchio", "Anfiteatro_Flavio", "Santa_Notte", "Leggenda_Sinfonica", "Variazioni_Sinfoniche",
+                "L_Amore_nell_Arte", "La_Maschera_del_Demonio", "Ercole_al_Centro_della_Terra", "Gli_Invasori",
+                "Le_Meraviglie_di_Aladino", "La_Ragazza_che_Sapeva_Troppo", "La_Frusta_e_il_Corpo",
+                "I_Tre_Volti_della_Paura", "Sei_Donne_per_l_Assassino", "La_Strada_per_Fort_Alamo", "Terrore_nello_Spazio",
+                "Le_spie_Vengono_dal_Semifreddo", "Operazione_Paura", "I_Coltelli_del_Vendicatore", "Diabolik",
+                "Il_Rosso_Segno_della_Follia", "Quante_Volte_Quella_Notte", "5_Bambole_per_la_Luna_d_Agosto",
+                "Roy_Colt_e_Winchester_Jack", "Reazione_a_Catena", "Gli_Orrori_del_Castello_di_Norimberga",
+                "Lisa_e_il_Diavolo", "Cani_Arrabbiati", "La_Casa_dell_Esorcismo", "Schock", "La_Venere_d_Ille"]
+
+# Akira Kurosawa's filmography.
+__mnemonic_names__["kurosawa"] = ["Sanshiro_Sugata", "The_Most_Beautiful", "Sanshiro_Sugata_Part_II",
+              "The_Men_Who_Thread_on_Tigers_Tail", "Thosw_Who_Make_Tomorrow", "No_Regrets_for_Our_Youth",
+              "One_Wonderful_Sunday", "Drunken_Angel", "The_Quiet_Duel", "Stray_Dog", "Scandal", "Rashomon", "The_Idiot",
+              "Ikiru", "Seven_Samurai", "I_Live_in_Fear", "Throne_of_Blood", "The_Lower_Depths", "The_Hidden_Fortress",
+              "The_Bad_Sleep_Well", "Yojimbo", "Sanjuro", "High_and_Low", "Red_Beard", "Dodes_ka-den", "Dersu_Uzala",
+              "Kagemusha", "Ran", "Dreams", "Rhapsody_in_August", "Madadayo"]
+
+# Martin Scorsese's filmography (only feature films).
+__mnemonic_names__["scorsese"] = ["Whos_That_Knocking_at_My_Door", "Obsessions", "Boxcar_Bertha", "Mean_Streets",
+              "Alice_Doesnt_Live_Here_Anymore", "Taxi_Driver", "New_York_New_York", "Raging_Bull", "The_King_of_Comedy",
+              "After_Hours", "The_Color_of_Money", "The_Last_Temptation_of_Christ", "Goodfellas", "Cape_Fear",
+              "The_Age_of_Innocence", "Casino", "Kundun", "Bringing_Out_the_Dead", "Gangs_of_New_York", "The_Aviator",
+              "The_Departed", "Shutter_Island", "Hugo", "The_Wolf_of_Wall_Street", "Silence", "The_Irishman",
+              "Killers_of_the_Flower_Moon"]
