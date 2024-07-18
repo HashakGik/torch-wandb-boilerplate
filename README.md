@@ -119,7 +119,7 @@ the `utils.prune_hyperparameters` function detects an irrelevant combination.
 |--------------------------|---------------------------|---------------|---------------------------------------------|
 | `Overfitting`            | `--overfitting_threshold` | 0.5           | $`M_{train} - M_{test} > threshold`$        |
 | `Vanishing gradient`     | `--vanishing_threshold`   | 1e-5          | $`\|\nabla Loss\| < threshold`$             |
-| `Exploding gradient`     | `--exploding_threshold`   | 1e7           | $`\|\nabla Loss\| > threshold`              | 
+| `Exploding gradient`     | `--exploding_threshold`   | 1e7           | $`\|\nabla Loss\| > threshold`$              | 
 | `High StdDev`            | `--std_threshold`         | 200.0         | $`\sigma(\nabla Loss) > threshold`$         |
 | `Random guessing`        | `--rnd_threshold`         | 0.1           | $`M^{rnd}_{split} + threshold > M_{split}`$ |
 | `Most probable guessing` | `--mp_threshold`          | 0.1           | $`M^{mp}_{split} + threshold > M_{split}`$  |
