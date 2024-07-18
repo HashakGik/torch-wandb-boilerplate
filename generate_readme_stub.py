@@ -82,27 +82,27 @@ if __name__ == "__main__":
 
     # Markdown stub for the readme file.
     markdown = """
-    # Project name
-    This is the code for our paper [Name](https://duckduckgo.com).
-    If applicable also link [datasets](url).
-    
-    [![License: CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/80x15.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
-    
-    ## Description
-    TODO: Short description of the project...
-    
-    ## Requirements
-    
-    ```
-    {}
-    ```
-    
-    TODO: Additional requirements to be installed manually...
-    
-    ## Usage
-    
-    {}
-    """.format(dependencies.decode("utf-8"), format_table(params))
+# Project name
+This is the code for our paper [Name](https://duckduckgo.com).
+If applicable also link [datasets](url).
+
+[![License: CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/80x15.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+## Description
+TODO: Short description of the project...
+
+## Requirements
+
+```
+{}
+```
+
+TODO: Additional requirements to be installed manually...
+
+## Usage
+
+{}
+""".format(dependencies.decode("utf-8"), format_table(params))
 
 
 
