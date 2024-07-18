@@ -18,7 +18,7 @@ A small snippet also allows to automatically generate a basic `README.md` contai
 
 For demonstration purposes, this boilerplate trains a simple feedforward network on the MNIST digits dataset.
 
-You can check the results [here](https://wandb.ai/l-lorello/boilerplate).
+You can check the results [here](https://wandb.ai/l-lorello/boilerplate/workspace?nw=1zmhqvhxr0w).
 ## License
 For anti-plagiarism reasons, we need to share our experiments with an attribution license, 
 however, this boilerplate is released under the *Beer-ware license*.
