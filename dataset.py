@@ -4,7 +4,6 @@
 with this stuff. If we meet some day, and you think this stuff is worth it, you can buy me a beer in return.
 """
 
-import torch
 from torch.utils.data import Dataset
 from torchvision import datasets
 from torchvision.transforms import Compose, ToTensor

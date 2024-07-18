@@ -6,13 +6,14 @@ with this stuff. If we meet some day, and you think this stuff is worth it, you 
 
 import torch
 from torch.utils.data import DataLoader
+import torch.nn.functional as F
 
 import tqdm.auto as tqdm
 import signal # Note: this will not work for non-UNIX systems, as we rely on SIGALRM to detect timeouts.
 import time
 
 import torcheval.metrics
-from metrics import Variance, grad_norm
+from metrics import StdDev, MostProbableMetric, RandomMetric, grad_norm
 
 # Use this file for your training logic. We usually need highly-customized training loops, so a standardized interface
 # like Lightning does not suit our needs.
@@ -20,7 +21,7 @@ from metrics import Variance, grad_norm
 
 def train(net, train_ds, val_ds, test_ds, rng, opts):
     """
-    Train the model on the provided datasets. If some events are triggered during training, it collects them on a set of flags.
+    Train the model on the provided datasets. If some events are triggered during training, it collects them on a set of tags.
     These events can be errors (NaN loss, infinite gradients, etc.), warnings (e.g., vanishing gradients, overfitting),
     interrupts (e.g., timeout, user abort, etc.), or informative (e.g., successful run).
     Depending on the experimental setting, some may be more important than others.
@@ -30,7 +31,7 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
     :param test_ds: Test dataset.
     :param opts: Dictionary of hyper-parameters.
     :param rng: Seeded numpy.random.Generator.
-    :return: Tuple: (history: list of metrics evaluated for each epoch, return_flags: set of events triggered during training).
+    :return: Tuple: (history: list of metrics evaluated for each epoch, return_tags: set of events triggered during training).
     """
     def timeout_handler(signum, frame):
         raise TimeoutError()
@@ -53,7 +54,7 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
             p.register_hook(lambda grad: torch.clamp(grad, -opts["grad_clipping"], opts["grad_clipping"]))
 
     history = []
-    return_flags = set()
+    return_tags = set()
     ok = True # True for successful completion and completion with warnings, False for errors.
 
     # Define here your metrics.
@@ -64,17 +65,34 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
         } for s in ["train", "val", "test"]
     }
 
+    baselines = {k: {
+            "rnd": {
+                "accuracy": RandomMetric(torcheval.metrics.MulticlassAccuracy, opts["device"]),
+                "f1": RandomMetric(torcheval.metrics.MulticlassF1Score, opts["device"])
+            },
+            "mp": {
+                "accuracy": MostProbableMetric(torcheval.metrics.MulticlassAccuracy, opts["device"]),
+                "f1": MostProbableMetric(torcheval.metrics.MulticlassF1Score, opts["device"])
+            }
+        } for k in ["train", "val", "test"]
+    }
+
 
     # Additional metrics.
     metrics["train"]["loss"] = torcheval.metrics.Mean(device=opts["device"])
     metrics["train"]["avg_grad_norm"] = torcheval.metrics.Mean(device=opts["device"])
-    metrics["train"]["var_grad_norm"] = Variance(device=opts["device"])
+    metrics["train"]["std_grad_norm"] = StdDev(device=opts["device"])
 
 
     for e in tqdm.trange(opts["epochs"], position=0, desc="epoch"):
         for v in metrics.values():
             for v2 in v.values():
                 v2.reset()
+
+        # To assess generalization, replace computed histograms for validation and test set with training set.
+        for k in ["val", "test"]:
+            for k2, v in baselines[k]["mp"].items():
+                v.set_histogram(baselines["train"]["mp"][k2].get_histogram())
 
         net.train()
 
@@ -86,19 +104,17 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
             start_time = time.time()
             # Train the model.
             for batch in (bar := tqdm.tqdm(train_dl, position=1, desc="batch", leave=False, ncols=0)):
-                loss, ok, step_flags = train_step(net, optimizer, batch, metrics, opts)
+                loss, ok, step_tags = train_step(net, optimizer, batch, metrics, baselines, opts)
 
-                return_flags.update(step_flags)
+                return_tags.update(step_tags)
 
                 bar.set_postfix_str(
-                    "Loss: {:.02f}, avg_Loss: {:.02f}, dLoss: {:.02f}, dLoss_var: {:.02f}, Accuracy: {:.02f}, F1: {:.02f}".format(
+                    "Loss: {:.02f}, avg_Loss: {:.02f}, avg_dLoss: {:.02f}, std_dLoss: {:.02f}, Accuracy: {:.02f}, F1: {:.02f}".format(
                         loss, metrics["train"]["loss"].compute(), metrics["train"]["avg_grad_norm"].compute(),
-                        metrics["train"]["var_grad_norm"].compute(), metrics["train"]["accuracy"].compute(),
+                        metrics["train"]["std_grad_norm"].compute(), metrics["train"]["accuracy"].compute(),
                         metrics["train"]["f1"].compute()
                     )
                 )
-                if not ok:
-                    break
 
             times = {"train": time.time() - start_time}
             with torch.no_grad():
@@ -107,7 +123,7 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
                 for split, dl in {"val": val_dl, "test": test_dl}.items():
                     start_time = time.time()
                     for batch in (bar := tqdm.tqdm(dl, position=1, desc="batch", leave=False, ncols=0)):
-                        eval_step(net, batch, metrics, split, opts)
+                        eval_step(net, batch, metrics, baselines, split, opts)
                     times[split] = time.time() - start_time
 
                     bar.set_postfix_str(
@@ -120,33 +136,38 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
 
             epoch_stats = {}
             for split in ["train", "val", "test"]:
-                epoch_stats["{}_time".format(split)] = times[split]
+                epoch_stats["{}/time".format(split)] = times[split]
                 for k, v in metrics[split].items():
-                    epoch_stats["{}_{}".format(split, k)] = v.compute().item()
+                    epoch_stats["{}/{}".format(split, k)] = v.compute().item()
 
             # "Generalization" metrics: train-test and train/test for every recorded metric.
             for k in metrics["test"].keys():
-                epoch_stats["delta_{}".format(k)] = epoch_stats["train_{}".format(k)] - epoch_stats["test_{}".format(k)]
-                if epoch_stats["delta_{}".format(k)] > 0.5:
-                    return_flags.add("Overfitting {} (learning)".format(k))
+                epoch_stats["delta/{}".format(k)] = epoch_stats["train/{}".format(k)] - epoch_stats["test/{}".format(k)]
+                if epoch_stats["delta/{}".format(k)] > opts["overfitting_threshold"]:
+                    return_tags.add("Overfitting {} (learning)".format(k))
 
-                if epoch_stats["test_{}".format(k)] != 0:
-                    epoch_stats["ratio_{}".format(k)] = epoch_stats["train_{}".format(k)] / epoch_stats[
-                        "test_{}".format(k)]
+                if epoch_stats["test/{}".format(k)] != 0:
+                    epoch_stats["ratio/{}".format(k)] = epoch_stats["train/{}".format(k)] / epoch_stats[
+                        "test/{}".format(k)]
                 else:
-                    epoch_stats["ratio_{}".format(k)] = 0.0
+                    epoch_stats["ratio/{}".format(k)] = 0.0
+
+            # At the end of the first epoch, freeze random baseline metrics.
+            for k, v in baselines.items():
+                for v2 in v["rnd"].values():
+                    v2.freeze()
 
             history.append(epoch_stats)
 
         # If the timer has expired, abort training.
         except TimeoutError:
-            return_flags.add("Timeout")
+            return_tags.add("Timeout")
             ok = False
 
         # If the user presses Ctrl+C, abort training. It does not work when W&B is running in sweep mode, because
         # the wrapper will catch the signal before this exception.
         except KeyboardInterrupt:
-            return_flags.add("User abort")
+            return_tags.add("User abort")
             ok = False
 
         # Whatever happens, disable the timer at the end.
@@ -157,15 +178,28 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
             break
 
     if ok:
+        # Add baselines to the history.
+        for h in history:
+            for split, v in baselines.items():
+                for b, v2 in v.items():
+                    for m, v3 in v2.items():
+                        h["{}/{}_{}".format(split, b, m)] = v3.compute().item()
+
         for k in metrics["test"].keys():
-            if history[-1]["delta_{}".format(k)] > 0.5:
-                return_flags.add("Overfitting {} (end)".format(k))
+            if history[-1]["delta/{}".format(k)] > opts["overfitting_threshold"]:
+                return_tags.add("Overfitting {} (end)".format(k))
+                
+            for s in ["train", "val", "test"]:
+                if k in baselines[s]["rnd"] and history[-1]["{}/{}".format(s, k)] <= history[-1]["{}/rnd_{}".format(s, k)] + opts["rnd_threshold"]:
+                    return_tags.add("Random guessing {} ({})".format(k, s))
+                if k in baselines[s]["mp"] and history[-1]["{}/{}".format(s, k)] <= history[-1]["{}/mp_{}".format(s, k)] + opts["mp_threshold"]:
+                    return_tags.add("Most probable guessing {} ({})".format(k, s))
 
-        return_flags.add("Success")
+        return_tags.add("Success")
 
-    return history, return_flags
+    return history, return_tags
 
-def train_step(net, optimizer, batch, metrics, opts):
+def train_step(net, optimizer, batch, metrics, baselines, opts):
     """
     Single training step.
     :param net: torch.nn.Module to train.
@@ -173,10 +207,10 @@ def train_step(net, optimizer, batch, metrics, opts):
     :param batch: Input batch.
     :param metrics: Metrics to update at the end of the step.
     :param opts: Dictionary of hyper-parameters.
-    :return: Tuple (loss: value of the loss, ok: whether training should continue, ret_flags: events triggered by this batch)
+    :return: Tuple (loss: value of the loss, ok: whether training should continue, ret_tags: events triggered by this batch)
     """
     ok = True
-    ret_flags = set()
+    ret_tags = set()
     img, label = batch
 
     img = img.to(opts["device"])
@@ -184,55 +218,58 @@ def train_step(net, optimizer, batch, metrics, opts):
 
     pred = net(img)
 
-    loss = opts["supervision_lambda"] * torch.nn.functional.cross_entropy(pred, label)
+    loss = opts["supervision_lambda"] * F.cross_entropy(pred, label)
     # loss += opts["other_lambda"] * other_loss()
 
     if torch.isnan(loss):
         ok = False
-        ret_flags.add("NaN loss")
+        ret_tags.add("NaN loss")
     elif torch.isposinf(loss):
         ok = False
-        ret_flags.add("Inf loss")
+        ret_tags.add("Inf loss")
     else:
         optimizer.zero_grad()
         loss.backward()
-
-        optimizer.step()
 
     metrics["train"]["loss"].update(loss)
     norms = grad_norm(list(net.parameters()))
 
     if torch.isnan(norms):
         ok = False
-        ret_flags.add("NaN gradient")
+        ret_tags.add("NaN gradient")
+    else:
+        # Avoid NaN weights, by stepping only if gradient is finite.
+        optimizer.step()
 
-    # These magic numbers depend on the experiment.
-    if norms < 1e-5:
-        print("Warning: Vanishing gradients. Gradient norm: {}".format(norms))
-        ret_flags.add("Vanishing gradient")
-    elif norms > 1e10:
-        print("Warning: Exploding gradients. Gradient norm: {}".format(norms))
-        ret_flags.add("Exploding gradient")
+    if norms < opts["vanishing_threshold"]:
+        ret_tags.add("Vanishing gradient")
+    elif norms > opts["exploding_threshold"]:
+        ret_tags.add("Exploding gradient")
 
     metrics["train"]["avg_grad_norm"].update(norms)
-    metrics["train"]["var_grad_norm"].update(norms)
+    metrics["train"]["std_grad_norm"].update(norms)
 
-    if metrics["train"]["var_grad_norm"].compute() > 1e7:
-        print("Warning: High gradient variance.")
-        ret_flags.add("High variance")
+    if metrics["train"]["std_grad_norm"].compute() > opts["std_threshold"]:
+        ret_tags.add("High StdDev")
 
     # Update metrics.
     metrics["train"]["accuracy"].update(pred, label)
     metrics["train"]["f1"].update(pred, label)
 
-    return loss, ok, ret_flags
+    baselines["train"]["rnd"]["accuracy"].update(pred, label)
+    baselines["train"]["rnd"]["f1"].update(pred, label)
+    baselines["train"]["mp"]["accuracy"].update(pred, label)
+    baselines["train"]["mp"]["f1"].update(pred, label)
 
-def eval_step(net, batch, metrics, split, opts):
+    return loss, ok, ret_tags
+
+def eval_step(net, batch, metrics, baselines, split, opts):
     """
     Single evaluation step.
     :param net: torch.nn.Module to evaluate.
     :param batch: Input batch.
     :param metrics: Metrics to update.
+    :param baselines: Baseline metrics to update.
     :param split: Dataset split.
     :param opts: Dictionary of hyper-parameters.
     """
@@ -243,5 +280,13 @@ def eval_step(net, batch, metrics, split, opts):
 
     pred = net(img)
 
+
+    # In this simple example metrics are updated with the same tensors, so we could use a for loop.
+    # In general different metrics may be updated by different predictions.
     metrics[split]["accuracy"].update(pred, label)
     metrics[split]["f1"].update(pred, label)
+
+    baselines[split]["rnd"]["accuracy"].update(pred, label)
+    baselines[split]["rnd"]["f1"].update(pred, label)
+    baselines[split]["mp"]["accuracy"].update(pred, label)
+    baselines[split]["mp"]["f1"].update(pred, label)

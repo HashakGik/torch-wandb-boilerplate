@@ -31,7 +31,7 @@ class ArgNumber:
         if number_type not in [int, float]:
             raise argparse.ArgumentTypeError("Invalid number type (it must be int or float)")
         if not ((self.__min is None and self.__max is None) or
-                (self.__max is None) or (self.__min is not None and self.__min < self.__max)):
+                (self.__max is None) or (self.__min is None) or (self.__min is not None and self.__min < self.__max)):
             raise argparse.ArgumentTypeError("Invalid range")
 
     def __call__(self, value: int | float | str) -> int | float:
@@ -120,6 +120,29 @@ def get_arg_parser():
     arg_parser.add_argument("--wandb_project", help="Use W&B, this is the project name (default: None)", type=str,
                             default=None)
 
+    # Magic numbers.
+    arg_parser.add_argument('--eps',
+                            help="Epsilon for numerical stability (default: 1e-7)",
+                            type=ArgNumber(float, min_val=0), default=1e-7)
+    arg_parser.add_argument('--overfitting_threshold',
+                            help="Threshold triggering an overfitting tag (default: 0.5)",
+                            type=ArgNumber(float, min_val=0), default=0.5)
+    arg_parser.add_argument('--vanishing_threshold',
+                            help="Threshold triggering a vanishing gradient tag (default: 1e-5)",
+                            type=ArgNumber(float, min_val=0), default=1e-5)
+    arg_parser.add_argument('--exploding_threshold',
+                            help="Threshold triggering an exploding gradient tag (default: 1e7)",
+                            type=ArgNumber(float, min_val=0), default=1e7)
+    arg_parser.add_argument('--std_threshold',
+                            help="Threshold triggering an high gradient standard deviation tag (default: 200.0)",
+                            type=ArgNumber(float, min_val=0), default=200.0)
+    arg_parser.add_argument('--rnd_threshold',
+                            help="Threshold triggering a random guessing tag (default: 0.1)",
+                            type=ArgNumber(float, min_val=0), default=0.1)
+    arg_parser.add_argument('--mp_threshold',
+                            help="Threshold triggering a most probable guessing tag (default: 0.1)",
+                            type=ArgNumber(float, min_val=0), default=0.1)
+
     return arg_parser
 
 def get_unhashable_opts():
@@ -131,7 +154,8 @@ def get_unhashable_opts():
     :return: The list of excluded arguments.
     """
     return ["wandb_project", "save", "seed", "device", "prefix_path", "data_path", "output_path",
-            "abort_irrelevant", "epoch_timeout"] # epoch_timeout may be an important hyper-parameter, depending on the type of experiment.
+            "abort_irrelevant", "eps", "overfitting_threshold", "vanishing_threshold", "exploding_threshold",
+            "std_threshold", "rnd_threshold", "mp_threshold", "epoch_timeout"] # epoch_timeout may be an important hyper-parameter, depending on the type of experiment.
 
 def generate_name(opts, mnemonics=None):
     """
