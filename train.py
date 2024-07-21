@@ -36,7 +36,7 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
     def timeout_handler(signum, frame):
         raise TimeoutError()
 
-    signal.signal(signal.SIGALRM, timeout_handler) # NOTE: this works only on UNIX systems!
+    signal.signal(signal.SIGALRM, timeout_handler) # NOTE: this works only on UNIX systems! Windows does not have SIGALRM.
 
     train_dl = DataLoader(train_ds, batch_size=opts["batch_size"], shuffle=True)
     val_dl = DataLoader(val_ds, batch_size=opts["batch_size"], shuffle=False)
