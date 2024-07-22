@@ -18,6 +18,11 @@ from metrics import StdDev, MostProbableMetric, RandomMetric, grad_norm
 # Use this file for your training logic. We usually need highly-customized training loops, so a standardized interface
 # like Lightning does not suit our needs.
 
+def timeout_handler(signum, frame):
+    raise TimeoutError()
+
+def sigint_handler(signum, frame):
+    raise KeyboardInterrupt()
 
 def train(net, train_ds, val_ds, test_ds, rng, opts):
     """
@@ -33,10 +38,9 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
     :param rng: Seeded numpy.random.Generator.
     :return: Tuple: (history: list of metrics evaluated for each epoch, return_tags: set of events triggered during training).
     """
-    def timeout_handler(signum, frame):
-        raise TimeoutError()
 
     signal.signal(signal.SIGALRM, timeout_handler) # NOTE: this works only on UNIX systems! Windows does not have SIGALRM.
+    signal.signal(signal.SIGINT, sigint_handler)
 
     train_dl = DataLoader(train_ds, batch_size=opts["batch_size"], shuffle=True)
     val_dl = DataLoader(val_ds, batch_size=opts["batch_size"], shuffle=False)
@@ -84,7 +88,7 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
     metrics["train"]["std_grad_norm"] = StdDev(device=opts["device"])
 
 
-    for e in tqdm.trange(opts["epochs"], position=0, desc="epoch"):
+    for e in tqdm.trange(opts["epochs"], position=0, desc="epoch", disable=opts["verbose"] < 1):
         for v in metrics.values():
             for v2 in v.values():
                 v2.reset()
@@ -103,10 +107,13 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
         try:
             start_time = time.time()
             # Train the model.
-            for batch in (bar := tqdm.tqdm(train_dl, position=1, desc="batch", leave=False, ncols=0)):
+            for batch in (bar := tqdm.tqdm(train_dl, position=1, desc="batch", leave=False, ncols=0, disable=opts["verbose"] < 2)):
                 loss, ok, step_tags = train_step(net, optimizer, batch, metrics, baselines, opts)
 
                 return_tags.update(step_tags)
+                # If the timer has expired, abort training.
+                if not ok:
+                    break
 
                 bar.set_postfix_str(
                     "Loss: {:.02f}, avg_Loss: {:.02f}, avg_dLoss: {:.02f}, std_dLoss: {:.02f}, Accuracy: {:.02f}, F1: {:.02f}".format(
@@ -122,8 +129,12 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
                 # Evaluate the model. If the validation set needs to be used to perform some calibration, split this loop into two.
                 for split, dl in {"val": val_dl, "test": test_dl}.items():
                     start_time = time.time()
-                    for batch in (bar := tqdm.tqdm(dl, position=1, desc="batch", leave=False, ncols=0)):
+                    for batch in (bar := tqdm.tqdm(dl, position=1, desc="batch", leave=False, ncols=0, disable=opts["verbose"] < 2)):
                         eval_step(net, batch, metrics, baselines, split, opts)
+
+                        # If the timer has expired, abort evaluation.
+                        if not ok:
+                            break
                     times[split] = time.time() - start_time
 
                     bar.set_postfix_str(

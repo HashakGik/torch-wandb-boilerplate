@@ -119,6 +119,9 @@ def get_arg_parser():
                             type=ArgBoolean(), default=True)
     arg_parser.add_argument("--wandb_project", help="Use W&B, this is the project name (default: None)", type=str,
                             default=None)
+    arg_parser.add_argument('--verbose',
+                            help="Amount of output (0: no output, 1: epoch summary, 2: full; default: 1)",
+                            type=int, choices=[0, 1, 2], default=1)
 
     # Magic numbers.
     arg_parser.add_argument('--eps',
@@ -153,7 +156,7 @@ def get_unhashable_opts():
     run computed on different machines to be hashed in the same way).
     :return: The list of excluded arguments.
     """
-    return ["wandb_project", "save", "seed", "device", "prefix_path", "data_path", "output_path",
+    return ["wandb_project", "save", "seed", "device", "prefix_path", "data_path", "output_path", "verbose",
             "abort_irrelevant", "eps", "overfitting_threshold", "vanishing_threshold", "exploding_threshold",
             "std_threshold", "rnd_threshold", "mp_threshold", "epoch_timeout"] # epoch_timeout may be an important hyper-parameter, depending on the type of experiment.
 
