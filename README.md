@@ -85,25 +85,25 @@ export WANDB_AGENT_MAX_INITIAL_FAILURES=1000
 ```
 ## List of tags
 
-| Tag  (informative)                           | Event                                                                                                                                                        |
-|----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Success`                                    | Training completed successfully                                                                                                                              |
-| `Overfitting METRIC_NAME (learning)`         | The difference of `METRIC_NAME` between training and test set is too high at some point during training                                                      |
-| `Overfitting METRIC_NAME (end)`              | The difference of `METRIC_NAME` between training and test set is still too high at the end of training                                                       |
-| `Random guessing METRIC_NAME (SPLIT)`        | At the end of training, the model performs as bad as (or worse) a random guesser, in terms of `METRIC_NAME` measured on `SPLIT`                              |
-| `Most probable guessing METRIC_NAME (SPLIT)` | At the end of training, the model performs as bad as (or worse) a model which guesses the most probable class, in terms of `METRIC_NAME` measured on `SPLIT` |
-| `Vanishing gradient`                         | The gradient norm is too small for some batch                                                                                                                |
-| `Exploding gradient`                         | The gradient norm is too large for some batch                                                                                                                |
-| `High StdDev`                                | The standard deviation of the gradient norm is too large for some batch                                                                                      |
+| Tag  (informative)                           | Event                                                                                                                                                             |
+|----------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Success`                                    | Training completed successfully                                                                                                                                   |
+| `Overfitting METRIC_NAME (learning)`         | The difference of `METRIC_NAME` between training and test set is too high at some point during training                                                           |
+| `Overfitting METRIC_NAME (end)`              | The difference of `METRIC_NAME` between training and test set is still too high at the end of training                                                            |
+| `Random guessing METRIC_NAME (SPLIT)`        | At the end of training, the model performs as bad as (or worse than) a random guesser, in terms of `METRIC_NAME` measured on `SPLIT`                              |
+| `Most probable guessing METRIC_NAME (SPLIT)` | At the end of training, the model performs as bad as (or worse than) a model which guesses the most probable class, in terms of `METRIC_NAME` measured on `SPLIT` |
+| `Vanishing gradient`                         | The gradient norm is too small for some batch                                                                                                                     |
+| `Exploding gradient`                         | The gradient norm is too large for some batch                                                                                                                     |
+| `High StdDev`                                | The standard deviation of the gradient norm is too large for some batch                                                                                           |
 
-| Tag (error)                                  | Event                                                                                                                                                        |
-|----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Irrelevant hyperparameters`                 | Experiment aborted because `--abort_irrelevant` was passed and a combination of hyper-parameters was irrelevant                                              |
-| `User abort`                                 | The used sent a `SIGINT` signal                                                                                                                              |
-| `Timeout`                                    | `--epoch_timeout` was set and a single epoch took too long to finish                                                                                         |
-| `NaN loss`                                   | The loss was not a number                                                                                                                                    |
-| `Inf loss`                                   | The loss was infinite                                                                                                                                        |
-| `NaN gradient`                               | The gradient norm was not a number                                                                                                                           |
+| Tag (error)                                  | Event                                                                                                                                                             |
+|----------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Irrelevant hyperparameters`                 | Experiment aborted because `--abort_irrelevant` was passed and a combination of hyper-parameters was irrelevant                                                   |
+| `User abort`                                 | The user sent a `SIGINT` signal                                                                                                                                   |
+| `Timeout`                                    | `--epoch_timeout` was set and a single epoch took too long to finish                                                                                              |
+| `NaN loss`                                   | The loss was not a number                                                                                                                                         |
+| `Inf loss`                                   | The loss was infinite                                                                                                                                             |
+| `NaN gradient`                               | The gradient norm was not a number                                                                                                                                |
 
 
 
@@ -119,7 +119,7 @@ the `utils.prune_hyperparameters` function detects an irrelevant combination.
 |--------------------------|---------------------------|---------------|---------------------------------------------|
 | `Overfitting`            | `--overfitting_threshold` | 0.5           | $`M_{train} - M_{test} > threshold`$        |
 | `Vanishing gradient`     | `--vanishing_threshold`   | 1e-5          | $`\|\nabla Loss\| < threshold`$             |
-| `Exploding gradient`     | `--exploding_threshold`   | 1e7           | $`\|\nabla Loss\| > threshold`$              | 
+| `Exploding gradient`     | `--exploding_threshold`   | 1e7           | $`\|\nabla Loss\| > threshold`$             | 
 | `High StdDev`            | `--std_threshold`         | 200.0         | $`\sigma(\nabla Loss) > threshold`$         |
 | `Random guessing`        | `--rnd_threshold`         | 0.1           | $`M^{rnd}_{split} + threshold > M_{split}`$ |
 | `Most probable guessing` | `--mp_threshold`          | 0.1           | $`M^{mp}_{split} + threshold > M_{split}`$  |
