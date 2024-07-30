@@ -211,7 +211,7 @@ def grad_norm(parameters):
     if len(parameters) == 0:
         total_norm = 0.0
     else:
-        device = parameters[0].grad.device
+        device = parameters[0].device
         total_norm = torch.norm(
             torch.stack([torch.norm(p.grad.detach(), 2).to(device) for p in parameters if p.grad is not None]),
             2.0)

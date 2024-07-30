@@ -9,7 +9,6 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 
 import tqdm.auto as tqdm
-import signal # Note: this will not work for non-UNIX systems, as we rely on SIGALRM to detect timeouts.
 import time
 
 import torcheval.metrics
@@ -18,11 +17,6 @@ from metrics import StdDev, MostProbableMetric, RandomMetric, grad_norm
 # Use this file for your training logic. We usually need highly-customized training loops, so a standardized interface
 # like Lightning does not suit our needs.
 
-def timeout_handler(signum, frame):
-    raise TimeoutError()
-
-def sigint_handler(signum, frame):
-    raise KeyboardInterrupt()
 
 def train(net, train_ds, val_ds, test_ds, rng, opts):
     """
@@ -38,9 +32,6 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
     :param rng: Seeded numpy.random.Generator.
     :return: Tuple: (history: list of metrics evaluated for each epoch, return_tags: set of events triggered during training).
     """
-
-    signal.signal(signal.SIGALRM, timeout_handler) # NOTE: this works only on UNIX systems! Windows does not have SIGALRM.
-    signal.signal(signal.SIGINT, sigint_handler)
 
     train_dl = DataLoader(train_ds, batch_size=opts["batch_size"], shuffle=True)
     val_dl = DataLoader(val_ds, batch_size=opts["batch_size"], shuffle=False)
@@ -87,6 +78,7 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
     metrics["train"]["avg_grad_norm"] = torcheval.metrics.Mean(device=opts["device"])
     metrics["train"]["std_grad_norm"] = StdDev(device=opts["device"])
 
+    yield ("start", None, None)  # Sentinel to start the watchdog heartbeat.
 
     for e in tqdm.trange(opts["epochs"], position=0, desc="epoch", disable=opts["verbose"] < 1):
         for v in metrics.values():
@@ -100,90 +92,71 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
 
         net.train()
 
-        # Set epoch timeout in minutes. This time includes both training and evaluation stages.
-        if opts["epoch_timeout"] > 0:
-            signal.alarm(opts["epoch_timeout"] * 60)
+        start_time = time.time()
+        # Train the model.
+        for batch in (bar := tqdm.tqdm(train_dl, position=1, desc="batch", leave=False, ncols=0, disable=opts["verbose"] < 2)):
+            loss, ok, step_tags = train_step(net, optimizer, batch, metrics, baselines, opts)
 
-        try:
-            start_time = time.time()
-            # Train the model.
-            for batch in (bar := tqdm.tqdm(train_dl, position=1, desc="batch", leave=False, ncols=0, disable=opts["verbose"] < 2)):
-                loss, ok, step_tags = train_step(net, optimizer, batch, metrics, baselines, opts)
+            return_tags.update(step_tags)
+            # If the timer has expired, abort training.
+            if not ok:
+                break
 
-                return_tags.update(step_tags)
-                # If the timer has expired, abort training.
-                if not ok:
-                    break
+            bar.set_postfix_str(
+                "Loss: {:.02f}, avg_Loss: {:.02f}, avg_dLoss: {:.02f}, std_dLoss: {:.02f}, Accuracy: {:.02f}, F1: {:.02f}".format(
+                    loss, metrics["train"]["loss"].compute(), metrics["train"]["avg_grad_norm"].compute(),
+                    metrics["train"]["std_grad_norm"].compute(), metrics["train"]["accuracy"].compute(),
+                    metrics["train"]["f1"].compute()
+                )
+            )
+
+        times = {"train": time.time() - start_time}
+        with torch.no_grad():
+            net.eval()
+            # Evaluate the model. If the validation set needs to be used to perform some calibration, split this loop into two.
+            for split, dl in {"val": val_dl, "test": test_dl}.items():
+                start_time = time.time()
+                for batch in (bar := tqdm.tqdm(dl, position=1, desc="batch", leave=False, ncols=0, disable=opts["verbose"] < 2)):
+                    eval_step(net, batch, metrics, baselines, split, opts)
+
+                    # If the timer has expired, abort evaluation.
+                    if not ok:
+                        break
+                times[split] = time.time() - start_time
 
                 bar.set_postfix_str(
-                    "Loss: {:.02f}, avg_Loss: {:.02f}, avg_dLoss: {:.02f}, std_dLoss: {:.02f}, Accuracy: {:.02f}, F1: {:.02f}".format(
-                        loss, metrics["train"]["loss"].compute(), metrics["train"]["avg_grad_norm"].compute(),
-                        metrics["train"]["std_grad_norm"].compute(), metrics["train"]["accuracy"].compute(),
-                        metrics["train"]["f1"].compute()
+                    "({}) Accuracy: {:.02f}, F1: {:.02f}".format(
+                        split,
+                        metrics[split]["accuracy"].compute(),
+                        metrics[split]["f1"].compute()
                     )
                 )
 
-            times = {"train": time.time() - start_time}
-            with torch.no_grad():
-                net.eval()
-                # Evaluate the model. If the validation set needs to be used to perform some calibration, split this loop into two.
-                for split, dl in {"val": val_dl, "test": test_dl}.items():
-                    start_time = time.time()
-                    for batch in (bar := tqdm.tqdm(dl, position=1, desc="batch", leave=False, ncols=0, disable=opts["verbose"] < 2)):
-                        eval_step(net, batch, metrics, baselines, split, opts)
+        epoch_stats = {}
+        for split in ["train", "val", "test"]:
+            epoch_stats["{}/time".format(split)] = times[split]
+            for k, v in metrics[split].items():
+                epoch_stats["{}/{}".format(split, k)] = v.compute().item()
 
-                        # If the timer has expired, abort evaluation.
-                        if not ok:
-                            break
-                    times[split] = time.time() - start_time
+        # "Generalization" metrics: train-test and train/test for every recorded metric.
+        for k in metrics["test"].keys():
+            epoch_stats["delta/{}".format(k)] = epoch_stats["train/{}".format(k)] - epoch_stats["test/{}".format(k)]
+            if epoch_stats["delta/{}".format(k)] > opts["overfitting_threshold"]:
+                return_tags.add("Overfitting {} (learning)".format(k))
 
-                    bar.set_postfix_str(
-                        "({}) Accuracy: {:.02f}, F1: {:.02f}".format(
-                            split,
-                            metrics[split]["accuracy"].compute(),
-                            metrics[split]["f1"].compute()
-                        )
-                    )
+            if epoch_stats["test/{}".format(k)] != 0:
+                epoch_stats["ratio/{}".format(k)] = epoch_stats["train/{}".format(k)] / epoch_stats[
+                    "test/{}".format(k)]
+            else:
+                epoch_stats["ratio/{}".format(k)] = 0.0
 
-            epoch_stats = {}
-            for split in ["train", "val", "test"]:
-                epoch_stats["{}/time".format(split)] = times[split]
-                for k, v in metrics[split].items():
-                    epoch_stats["{}/{}".format(split, k)] = v.compute().item()
+        # At the end of the first epoch, freeze random baseline metrics.
+        for k, v in baselines.items():
+            for v2 in v["rnd"].values():
+                v2.freeze()
 
-            # "Generalization" metrics: train-test and train/test for every recorded metric.
-            for k in metrics["test"].keys():
-                epoch_stats["delta/{}".format(k)] = epoch_stats["train/{}".format(k)] - epoch_stats["test/{}".format(k)]
-                if epoch_stats["delta/{}".format(k)] > opts["overfitting_threshold"]:
-                    return_tags.add("Overfitting {} (learning)".format(k))
-
-                if epoch_stats["test/{}".format(k)] != 0:
-                    epoch_stats["ratio/{}".format(k)] = epoch_stats["train/{}".format(k)] / epoch_stats[
-                        "test/{}".format(k)]
-                else:
-                    epoch_stats["ratio/{}".format(k)] = 0.0
-
-            # At the end of the first epoch, freeze random baseline metrics.
-            for k, v in baselines.items():
-                for v2 in v["rnd"].values():
-                    v2.freeze()
-
-            history.append(epoch_stats)
-
-        # If the timer has expired, abort training.
-        except TimeoutError:
-            return_tags.add("Timeout")
-            ok = False
-
-        # If the user presses Ctrl+C, abort training. It does not work when W&B is running in sweep mode, because
-        # the wrapper will catch the signal before this exception.
-        except KeyboardInterrupt:
-            return_tags.add("User abort")
-            ok = False
-
-        # Whatever happens, disable the timer at the end.
-        finally:
-            signal.alarm(0)
+        history.append(epoch_stats)
+        yield ("epoch", epoch_stats, return_tags)
 
         if not ok:
             break
@@ -208,7 +181,7 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
 
         return_tags.add("Success")
 
-    return history, return_tags
+    yield ("end", history, return_tags) # Sentinel signaling the end of training.
 
 def train_step(net, optimizer, batch, metrics, baselines, opts):
     """

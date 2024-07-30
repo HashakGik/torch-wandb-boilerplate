@@ -6,6 +6,8 @@ with this stuff. If we meet some day, and you think this stuff is worth it, you 
 
 import random
 import time
+import multiprocessing
+import queue
 import numpy as np
 import torch
 import hashlib
@@ -65,6 +67,102 @@ class ArgBoolean:
         else:
             raise argparse.ArgumentTypeError(f"Invalid value specified (expected boolean): {value}")
         return val
+
+class Watchdog:
+    """
+    Watchdog timer for a training loop. It runs training on a separate process, monitoring it with a periodic heartbeat.
+    Optionally, if a timeout is set, ensures that each epoch runs at most for that duration (approximated to the next integer multiple of the heartbeat).
+    There are two reasons why this is required:
+    1) signal.alarm only works on UNIX systems
+    2) we usually run portions of native code (C++/Rust), over which we have no control, this means that any exception raised
+       during native code execution will be lost. If exceptions are handled by a separate process, however, we can catch them
+       (at the expenses of killing the subprocess, without graceful termination).
+
+    If neither of these conditions apply to your setting (i.e., a pure torch training loop on UNIX), simply wrap your training code
+    with a signal.alarm raising a TimeoutException.
+    """
+    def __init__(self, function, heartbeat, *args, **kwargs):
+        """
+        Initializes an internal message queue and the child process.
+        :param function: Function run by the child process. It must be a generator yielding triples (phase, values, tags).
+                         The phase is one of ["start", "epoch", "end"].
+        :param heartbeat: Heartbeat duration (in seconds).
+        :param args: Positional arguments passed to the function.
+        :param kwargs: Keyword arguments passed to the function.
+        """
+        self.queue = multiprocessing.Queue()
+        self.heartbeat = heartbeat
+
+        self.fn_proc = multiprocessing.Process(target=self._fn_wrapper(function), args=args, kwargs=kwargs,
+                                               daemon=True)
+
+    def _fn_wrapper(self, function):
+        """
+        Simple generator wrapper. It writes yielded values to the message queue.
+        :param function: Generator function.
+        :return: The wrapped function.
+        """
+        def f(*args, **kwargs):
+            for x in function(*args, **kwargs):
+                self.queue.put(x)
+
+        return f
+
+    def listen(self, timeout):
+        """
+        Listen on the message queue for messages (phase, values, tags) written by the subprocess.
+        It relies on two sentinels: phase="start" and phase="end".
+        :param timeout: Timeout (in seconds) after which it gives up waiting for a new message when phase="epoch".
+                        It is rounded to the next integer multiple of self.heartbeat.
+        :return: The tuple (full training history, training tags).
+        """
+        finished = False
+        epoch_time = 0
+        history = []  # Keep a local copy of the training history updated incrementally, to have some data to report in case of crashing/timeouts.
+        return_tags = set()
+        _, _, _ = self.queue.get(block=True) # Always block until the first sentinel is received.
+        while not finished:
+            if not self.fn_proc.is_alive():
+                return_tags.add("Crashed")
+                break
+
+            try:
+                phase, epoch_stats, tags = self.queue.get(block=True, timeout=self.heartbeat)
+                epoch_time = 0 # Reset epoch timeout.
+
+                if phase == "epoch":
+                    history.append(epoch_stats)  # Update partial history.
+                else:  # Reached the end of the training loop (received the sentinel phase = "end").
+                    finished = True
+                    history = epoch_stats  # Replace the entire history at the end of training, since it completed successfully.
+
+                return_tags.update(tags)
+
+            except queue.Empty:
+                pass  # In case of heartbeat timeout, there is still a chance of being within the epoch timeout limit.
+            except KeyboardInterrupt:
+                return_tags.add("User abort")
+                break
+
+            epoch_time += self.heartbeat
+
+            if timeout > 0 and epoch_time >= timeout:
+                return_tags.add("Timeout")  # If the epoch timeout has expired, give up.
+                break
+
+        return history, return_tags
+
+    def __enter__(self):
+        self.fn_proc.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.fn_proc.is_alive():
+            self.fn_proc.kill()
+            self.fn_proc.join()
+            self.fn_proc.close()
+
+        return False # In case some unhandled exception is called, let them propagate to the caller.
 
 def get_arg_parser():
     """

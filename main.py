@@ -49,9 +49,25 @@ def run(opts, rng):
     # Train the model. Our experiments do not usually involve inference, so we simply terminate them after training.
     # Note: The seeded generator is not needed if random operations are not performed by numpy,
     # as global generators have been seeded as well.
-    history, return_flags = train(model, train_ds, val_ds, test_ds, rng, opts)
+    for x in train(model, train_ds, val_ds, test_ds, rng, opts):
+        yield x # Simply pass values to the watchdog wrapper.
 
-    return return_flags, model, history
+    if opts["save"]:
+        op = "{}/{}".format(opts["prefix_path"], opts["output_path"])
+        if not os.path.exists(op):
+            os.mkdir(op)
+
+        # Save model weights.
+        filename = "{}_{}".format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), experiment_name)
+        torch.save(model.state_dict(), "{}/{}.pt".format(op, filename))
+
+        # Save hyper-parameters, to reconstruct the correct model.
+        with open("{}/{}.yml".format(op, filename), "w") as file:
+            yaml.safe_dump(opts, file)
+
+        # Save results.
+        with open("{}/{}_results.yml".format(op, filename), "w") as file:
+            yaml.safe_dump({"history": history, "tags": return_tags}, file)
 
 
 if __name__ == "__main__":
@@ -79,37 +95,22 @@ if __name__ == "__main__":
 
     if run_experiment:
         rng = utils.set_seed(opts["seed"])
-        return_flags, model, history = run(opts, rng)
+
+        with utils.Watchdog(run, 10, opts, rng) as wd:
+            history, return_tags = wd.listen(opts["epoch_timeout"] * 60)
 
         if wb is not None:
-            wb.tags = sorted(return_flags)
+            wb.tags = sorted(return_tags)
             for i, h in enumerate(history):
                 wb.log(data=h, step=i)
 
-            if "Success" not in return_flags:
+            if "Success" not in return_tags:
                 wb.finish(exit_code=1)
             else:
                 wb.finish()
 
-
-        if opts["save"]:
-            op = "{}/{}".format(opts["prefix_path"], opts["output_path"])
-            if not os.path.exists(op):
-                os.mkdir(op)
-
-            # Save model weights.
-            filename = "{}_{}".format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), experiment_name)
-            torch.save(model.state_dict(), "{}/{}.pt".format(op, filename))
-
-            # Save hyper-parameters, to reconstruct the correct model.
-            with open("{}/{}.yml".format(op, filename), "w") as file:
-                yaml.safe_dump(opts, file)
-
-            # Save results.
-            with open("{}/{}_results.yml".format(op, filename), "w") as file:
-                yaml.safe_dump({"history": history, "flags": return_flags}, file)
-        elif wb is None: # If neither W&B nor local saving is enabled, at least print results on screen.
-            print({"history": history, "flags": return_flags})
+        else: # If W&B is not enabled, print results on screen.
+            print({"history": history, "tags": return_tags})
 
     else:
         if wb is not None:
