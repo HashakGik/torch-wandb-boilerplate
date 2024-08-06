@@ -245,7 +245,7 @@ def get_arg_parser():
                             type=ArgNumber(float, min_val=0), default=0.1)
     arg_parser.add_argument('--heartbeat',
                             help="Heartbeat for the watchdog timer in seconds (default: 10)",
-                            type=ArgNumber(int, min_val=0), default=10)
+                            type=ArgNumber(int, min_val=1), default=10)
 
     return arg_parser
 
