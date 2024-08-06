@@ -243,6 +243,9 @@ def get_arg_parser():
     arg_parser.add_argument('--mp_threshold',
                             help="Threshold triggering a most probable guessing tag (default: 0.1)",
                             type=ArgNumber(float, min_val=0), default=0.1)
+    arg_parser.add_argument('--heartbeat',
+                            help="Heartbeat for the watchdog timer in seconds (default: 10)",
+                            type=ArgNumber(int, min_val=0), default=10)
 
     return arg_parser
 
@@ -256,7 +259,7 @@ def get_unhashable_opts():
     """
     return ["wandb_project", "save", "seed", "device", "prefix_path", "data_path", "output_path", "verbose",
             "abort_irrelevant", "eps", "overfitting_threshold", "vanishing_threshold", "exploding_threshold",
-            "std_threshold", "rnd_threshold", "mp_threshold", "epoch_timeout"] # epoch_timeout may be an important hyper-parameter, depending on the type of experiment.
+            "std_threshold", "rnd_threshold", "mp_threshold", "heartbeat", "epoch_timeout"] # epoch_timeout may be an important hyper-parameter, depending on the type of experiment.
 
 def generate_name(opts, mnemonics=None):
     """
