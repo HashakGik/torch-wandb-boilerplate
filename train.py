@@ -181,7 +181,7 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
 
         return_tags.add("Success")
 
-    yield ("end", history, return_tags) # Sentinel signaling the end of training.
+    yield ("end", history, return_tags) # Sentinel signaling the end of training. Note: Yielding the entire history, instead of just the last epoch.
 
 def train_step(net, optimizer, batch, metrics, baselines, opts):
     """

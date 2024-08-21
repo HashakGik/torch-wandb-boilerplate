@@ -182,7 +182,7 @@ __mnemonic_names__["nations"] = ["United_States", "Canada", "Mexico", "Panama", 
                    "Cayman", "Hong_Kong", "Abu_Dhabi", "Qatar", "Yugoslavia", "Crete", "Mauritania", "Monaco",
                    "Liechtenstein", "Malta", "Palestine", "Fiji", "Australia", "Sudan"]
 
-# German expressionist cinema.
+# German expressionist cinema (Mostly English-translated titles, from IMDB).
 __mnemonic_names__["german_expressionism"] = ["Algol_Tragedy_of_Power", "Asphalt", "The_Cabinet_of_Dr_Caligari",
             "The_Cat_and_the_Canary", "Destiny", "Dr_Mabuse_the_Gambler", "Faust", "From_Morning_to_Midnight",
             "Genuine_the_Tragedy_of_a_Vampire", "The_Golem", "The_Hands_of_Orlac", "The_Last_Laugh", "M",
@@ -196,14 +196,14 @@ __mnemonic_names__["bava"] = ["L_Orecchio", "Anfiteatro_Flavio", "Santa_Notte", 
                 "L_Amore_nell_Arte", "La_Maschera_del_Demonio", "Ercole_al_Centro_della_Terra", "Gli_Invasori",
                 "Le_Meraviglie_di_Aladino", "La_Ragazza_che_Sapeva_Troppo", "La_Frusta_e_il_Corpo",
                 "I_Tre_Volti_della_Paura", "Sei_Donne_per_l_Assassino", "La_Strada_per_Fort_Alamo", "Terrore_nello_Spazio",
-                "Le_spie_Vengono_dal_Semifreddo", "Operazione_Paura", "I_Coltelli_del_Vendicatore", "Diabolik",
+                "Le_Spie_Vengono_dal_Semifreddo", "Operazione_Paura", "I_Coltelli_del_Vendicatore", "Diabolik",
                 "Il_Rosso_Segno_della_Follia", "Quante_Volte_Quella_Notte", "5_Bambole_per_la_Luna_d_Agosto",
                 "Roy_Colt_e_Winchester_Jack", "Reazione_a_Catena", "Gli_Orrori_del_Castello_di_Norimberga",
                 "Lisa_e_il_Diavolo", "Cani_Arrabbiati", "La_Casa_dell_Esorcismo", "Schock", "La_Venere_d_Ille"]
 
 # Akira Kurosawa's filmography.
 __mnemonic_names__["kurosawa"] = ["Sanshiro_Sugata", "The_Most_Beautiful", "Sanshiro_Sugata_Part_II",
-              "The_Men_Who_Thread_on_Tigers_Tail", "Thosw_Who_Make_Tomorrow", "No_Regrets_for_Our_Youth",
+              "The_Men_Who_Thread_on_Tigers_Tail", "Those_Who_Make_Tomorrow", "No_Regrets_for_Our_Youth",
               "One_Wonderful_Sunday", "Drunken_Angel", "The_Quiet_Duel", "Stray_Dog", "Scandal", "Rashomon", "The_Idiot",
               "Ikiru", "Seven_Samurai", "I_Live_in_Fear", "Throne_of_Blood", "The_Lower_Depths", "The_Hidden_Fortress",
               "The_Bad_Sleep_Well", "Yojimbo", "Sanjuro", "High_and_Low", "Red_Beard", "Dodes_ka-den", "Dersu_Uzala",
