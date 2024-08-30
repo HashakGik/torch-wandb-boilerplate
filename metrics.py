@@ -208,11 +208,12 @@ def grad_norm(parameters):
     :param parameters: List of model parameters.
     :return: The gradient norm.
     """
-    if len(parameters) == 0:
-        total_norm = 0.0
-    else:
+    total_norm = torch.zeros(1)
+
+    if len(parameters) > 0:
         device = parameters[0].device
-        total_norm = torch.norm(
-            torch.stack([torch.norm(p.grad.detach(), 2).to(device) for p in parameters if p.grad is not None]),
-            2.0)
+        tmp = [torch.norm(p.grad.detach(), 2).to(device) for p in parameters if p.grad is not None]
+        if len(tmp) > 0:
+            total_norm = torch.norm(torch.stack(tmp), 2.0)
+
     return total_norm

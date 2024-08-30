@@ -98,7 +98,7 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
             loss, ok, step_tags = train_step(net, optimizer, batch, metrics, baselines, opts)
 
             return_tags.update(step_tags)
-            # If the timer has expired, abort training.
+            # If there was an error abort training.
             if not ok:
                 break
 
@@ -119,7 +119,7 @@ def train(net, train_ds, val_ds, test_ds, rng, opts):
                 for batch in (bar := tqdm.tqdm(dl, position=1, desc="batch", leave=False, ncols=0, disable=opts["verbose"] < 2)):
                     eval_step(net, batch, metrics, baselines, split, opts)
 
-                    # If the timer has expired, abort evaluation.
+                    # If there was an error, abort evaluation.
                     if not ok:
                         break
                 times[split] = time.time() - start_time
